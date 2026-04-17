@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+
+  # MySQL Database
+  db:
+    image: mysql:8
+    container_name: myapp-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: myappdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass123
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - myapp-network
+
+  # Spring Boot Backend
+  backend:
+    build: ./backend
+    container_name: myapp-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/myappdb
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: apppass123
+    depends_on:
+      - db
+    networks:
+      - myapp-network
+
+  # React Frontend (Nginx)
+  frontend:
+    build: ./frontend
+    container_name: myapp-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - myapp-network
+
+networks:
+  myapp-network:
+    driver: bridge
+
+volumes:
+  db-data:
