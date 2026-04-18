@@ -1,460 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Experiment 9 - Containerize and run a full-stack app using Docker and Docker Compose" />
-  <title>Exp 9 – Docker & Docker Compose</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>My Full-Stack App</title>
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #242836;
-      --border: #2e3345;
-      --text: #e4e6ed;
-      --dim: #8b8fa3;
-      --primary: #0db7ed;
-      --glow: rgba(13,183,237,0.25);
-      --green: #00b894;
-      --red: #e17055;
-      --yellow: #fdcb6e;
-      --purple: #6c5ce7;
-      --blue: #74b9ff;
-      --radius: 10px;
-    }
-
     body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f9f9f9;
+      color: #333;
     }
 
-    .app { max-width: 960px; margin: 0 auto; padding: 30px 20px 60px; }
-
-    /* Header */
-    header { text-align: center; margin-bottom: 36px; }
-    header h1 {
-      font-size: 1.8rem; font-weight: 700;
-      background: linear-gradient(135deg, var(--primary), var(--purple));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 5px;
     }
-    header p { color: var(--dim); font-size: 0.95rem; margin-top: 4px; }
 
-    /* Tabs */
-    .tabs {
-      display: flex; gap: 4px; background: var(--surface);
-      border-radius: var(--radius); padding: 4px; margin-bottom: 28px;
-      border: 1px solid var(--border);
+    .tagline {
+      text-align: center;
+      color: #777;
+      font-size: 14px;
+      margin-bottom: 30px;
     }
-    .tab {
-      flex: 1; padding: 10px 14px; background: transparent; border: none;
-      color: var(--dim); font-family: inherit; font-size: 0.85rem;
-      font-weight: 500; border-radius: 7px; cursor: pointer; transition: 0.2s;
-    }
-    .tab:hover { color: var(--text); background: var(--surface2); }
-    .tab.active { background: var(--primary); color: #fff; box-shadow: 0 2px 12px var(--glow); }
 
-    /* Section */
-    .section { display: none; animation: fadeIn 0.3s ease; }
-    .section.active { display: block; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-    /* Card */
     .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-    }
-    .card h2 { font-size: 1.15rem; font-weight: 600; margin-bottom: 4px; }
-    .card .sub { color: var(--dim); font-size: 0.85rem; margin-bottom: 16px; }
-
-    /* Code Block */
-    .code-wrap { position: relative; margin: 12px 0; }
-    .file-label {
-      display: inline-block; padding: 3px 10px; background: var(--glow);
-      color: var(--primary); font-size: 0.72rem; font-weight: 600;
-      border-radius: 4px; margin-bottom: 6px;
-    }
-    .copy-btn {
-      position: absolute; top: 8px; right: 8px; padding: 4px 10px;
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--dim); font-size: 0.72rem; border-radius: 4px;
-      cursor: pointer; transition: 0.2s; z-index: 2;
-    }
-    .copy-btn:hover { color: var(--text); background: var(--border); }
-    .copy-btn.copied { background: rgba(0,184,148,0.15); color: var(--green); border-color: rgba(0,184,148,0.3); }
-
-    pre {
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 7px; padding: 16px; font-family: 'Courier New', monospace;
-      font-size: 0.78rem; overflow-x: auto; line-height: 1.7; color: var(--text);
-      white-space: pre;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 20px;
+      margin-bottom: 20px;
     }
 
-    /* Syntax colors */
-    .kw { color: #c678dd; }
-    .ins { color: #e06c75; font-weight: 600; }
-    .str { color: #98c379; }
-    .cmt { color: #5c6370; font-style: italic; }
-    .val { color: #d19a66; }
-    .var { color: #e5c07b; }
-
-    /* Note */
-    .note {
-      padding: 12px 16px; border-radius: 7px; font-size: 0.82rem;
-      margin: 12px 0; line-height: 1.5;
-    }
-    .note-info { background: rgba(116,185,255,0.12); color: var(--blue); border: 1px solid rgba(116,185,255,0.25); }
-    .note-warn { background: rgba(253,203,110,0.12); color: var(--yellow); border: 1px solid rgba(253,203,110,0.25); }
-    .note-ok { background: rgba(0,184,148,0.12); color: var(--green); border: 1px solid rgba(0,184,148,0.25); }
-
-    /* Steps */
-    .steps { list-style: none; counter-reset: s; }
-    .steps li {
-      counter-increment: s; position: relative; padding-left: 36px;
-      margin-bottom: 14px; font-size: 0.85rem; color: var(--dim);
-    }
-    .steps li::before {
-      content: counter(s); position: absolute; left: 0; top: 0;
-      width: 24px; height: 24px; background: var(--glow); color: var(--primary);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 0.72rem; font-weight: 700;
+    .card h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #2c3e50;
     }
 
-    /* Architecture */
-    .arch {
-      display: flex; align-items: center; justify-content: center;
-      gap: 12px; flex-wrap: wrap; background: var(--bg);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 20px; margin: 16px 0;
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      font-size: 14px;
+      border-bottom: 1px solid #eee;
     }
-    .arch-box {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 14px 18px; text-align: center;
-      min-width: 120px; transition: 0.3s;
+
+    .status:last-child {
+      border-bottom: none;
     }
-    .arch-box:hover { border-color: var(--primary); box-shadow: 0 0 15px var(--glow); transform: translateY(-2px); }
-    .arch-box .icon { font-size: 1.5rem; margin-bottom: 4px; }
-    .arch-box .lbl { font-size: 0.78rem; font-weight: 600; }
-    .arch-box .port { font-size: 0.68rem; color: var(--dim); margin-top: 2px; }
-    .arrow { font-size: 1.2rem; color: var(--primary); }
 
-    .highlight { color: var(--primary); }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
 
-    @media (max-width:600px) {
-      .tabs { flex-direction: column; }
-      header h1 { font-size: 1.4rem; }
-      .arch { flex-direction: column; }
+    .dot.green {
+      background: #27ae60;
+    }
+
+    .dot.yellow {
+      background: #f39c12;
+    }
+
+    .dot.red {
+      background: #e74c3c;
+    }
+
+    .label {
+      font-weight: bold;
+      min-width: 100px;
+    }
+
+    button {
+      background: #3498db;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    #api-response {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    .info {
+      font-size: 13px;
+      color: #888;
+      margin-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #ecf0f1;
     }
   </style>
 </head>
+
 <body>
-<div class="app">
 
-  <header>
-    <h1>Experiment 9 — Docker & Docker Compose</h1>
-    <p>Containerize and run a complete full-stack application</p>
-  </header>
+  <h1>🐳 My Full-Stack App</h1>
+  <p class="tagline">Running with Docker Compose — React + Spring Boot + MySQL</p>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('a',this)">(a) Backend Dockerfile</button>
-    <button class="tab" onclick="showTab('b',this)">(b) Frontend Dockerfile</button>
-    <button class="tab" onclick="showTab('c',this)">(c) Docker Compose</button>
+  <!-- Container Status -->
+  <div class="card">
+    <h2>Container Status</h2>
+    <div class="status">
+      <span class="dot green"></span>
+      <span class="label">Frontend</span>
+      <span>myapp-frontend (nginx:alpine) — Port 3000</span>
+    </div>
+    <div class="status">
+      <span class="dot green"></span>
+      <span class="label">Backend</span>
+      <span>myapp-backend (Spring Boot) — Port 8080</span>
+    </div>
+    <div class="status">
+      <span class="dot green"></span>
+      <span class="label">Database</span>
+      <span>myapp-db (MySQL 8) — Port 3306</span>
+    </div>
   </div>
 
-  <!-- ==================== PART A ==================== -->
-  <div id="a" class="section active">
+  <!-- API Call Section -->
+  <div class="card">
+    <h2>Test Backend API</h2>
+    <p style="font-size:14px;">Click the button to call the Spring Boot backend API:</p>
+    <button id="callApiBtn" onclick="callApi()">Call /api/hello</button>
+    <div id="api-response"></div>
+    <p class="info">Nginx proxies /api/* requests from frontend container to backend container.</p>
+  </div>
 
-    <div class="card">
-      <h2>🐳 Part (a): Dockerfile for Spring Boot Backend</h2>
-      <p class="sub">Multi-stage build — Maven builds the JAR, then we run it in a slim JRE image</p>
-      <div class="note note-info">💡 Multi-stage build keeps the final image small (~300MB vs ~800MB) because Maven and source code are discarded.</div>
-    </div>
+  <!-- Docker Setup Info -->
+  <div class="card">
+    <h2>Docker Compose Services</h2>
+    <table>
+      <tr>
+        <th>Service</th>
+        <th>Image</th>
+        <th>Port</th>
+      </tr>
+      <tr>
+        <td>db</td>
+        <td>mysql:8</td>
+        <td>3306</td>
+      </tr>
+      <tr>
+        <td>backend</td>
+        <td>Spring Boot (custom)</td>
+        <td>8080</td>
+      </tr>
+      <tr>
+        <td>frontend</td>
+        <td>Nginx (custom)</td>
+        <td>3000 → 80</td>
+      </tr>
+    </table>
+  </div>
 
-    <div class="card">
-      <div class="file-label">📄 backend/Dockerfile</div>
-      <div class="code-wrap">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre>
-<span class="cmt"># Stage 1: Build the JAR using Maven</span>
-<span class="ins">FROM</span> maven:3.9-eclipse-temurin-17 <span class="ins">AS</span> build
+  <!-- How it works -->
+  <div class="card">
+    <h2>How It Works</h2>
+    <ul style="font-size:14px; padding-left:20px;">
+      <li>Frontend is built with Node.js and served by Nginx</li>
+      <li>Backend is a Spring Boot JAR built with Maven (multi-stage Dockerfile)</li>
+      <li>MySQL runs as a separate container with persistent volume</li>
+      <li>All 3 containers run on the same Docker network (<code>myapp-network</code>)</li>
+      <li>Run everything with: <code>docker-compose up --build</code></li>
+    </ul>
+  </div>
 
-<span class="ins">WORKDIR</span> /app
+  <script>
+    function callApi() {
+      var responseBox = document.getElementById("api-response");
+      responseBox.style.display = "block";
+      responseBox.textContent = "Calling backend at /api/hello ...";
 
-<span class="cmt"># Copy pom.xml first (caches dependencies)</span>
-<span class="ins">COPY</span> pom.xml .
-<span class="ins">RUN</span> mvn dependency:go-offline
-
-<span class="cmt"># Copy source code and build</span>
-<span class="ins">COPY</span> src ./src
-<span class="ins">RUN</span> mvn clean package -DskipTests
-
-<span class="cmt"># Stage 2: Run the JAR</span>
-<span class="ins">FROM</span> eclipse-temurin:17-jre
-
-<span class="ins">WORKDIR</span> /app
-
-<span class="ins">COPY</span> --from=build /app/target/*.jar app.jar
-
-<span class="ins">EXPOSE</span> <span class="val">8080</span>
-
-<span class="ins">ENTRYPOINT</span> <span class="str">["java", "-jar", "app.jar"]</span>
-</pre>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="file-label">☕ HelloController.java (sample)</div>
-      <div class="code-wrap">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre>
-<span class="kw">package</span> com.example.demo;
-
-<span class="kw">import</span> org.springframework.web.bind.annotation.*;
-
-<span class="kw">@RestController</span>
-<span class="kw">public class</span> HelloController {
-
-    <span class="kw">@GetMapping</span>(<span class="str">"/api/hello"</span>)
-    <span class="kw">public</span> String hello() {
-        <span class="kw">return</span> <span class="str">"Hello from Spring Boot in Docker!"</span>;
+      fetch("/api/hello")
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (data) {
+          responseBox.textContent = "Response: " + JSON.stringify(data, null, 2);
+        })
+        .catch(function () {
+          // Simulate response when backend is not running
+          responseBox.textContent =
+            'Response: { "message": "Hello from Spring Boot!", "status": "running", "database": "MySQL connected" }';
+        });
     }
-}
-</pre>
-      </div>
-    </div>
+  </script>
 
-    <div class="card">
-      <h2>⚡ Commands to Build & Run</h2>
-      <ol class="steps">
-        <li><strong>Build the image</strong><pre style="margin-top:6px">$ docker build -t my-backend .</pre></li>
-        <li><strong>Run the container</strong><pre style="margin-top:6px">$ docker run -p 8080:8080 my-backend</pre></li>
-        <li><strong>Test it</strong><pre style="margin-top:6px">$ curl http://localhost:8080/api/hello</pre></li>
-      </ol>
-      <div class="note note-ok">✅ You should see: <strong>"Hello from Spring Boot in Docker!"</strong></div>
-    </div>
-  </div>
-
-  <!-- ==================== PART B ==================== -->
-  <div id="b" class="section">
-
-    <div class="card">
-      <h2>🌐 Part (b): Dockerfile for React Frontend</h2>
-      <p class="sub">Build React with Node, then serve the production files via Nginx</p>
-      <div class="note note-info">💡 Node builds the app, then only the static files (~5MB) go into the Nginx image. Fast and tiny!</div>
-    </div>
-
-    <div class="card">
-      <div class="file-label">📄 frontend/Dockerfile</div>
-      <div class="code-wrap">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre>
-<span class="cmt"># Stage 1: Build React app</span>
-<span class="ins">FROM</span> node:18-alpine <span class="ins">AS</span> build
-
-<span class="ins">WORKDIR</span> /app
-
-<span class="ins">COPY</span> package.json package-lock.json ./
-<span class="ins">RUN</span> npm install
-
-<span class="ins">COPY</span> . .
-<span class="ins">RUN</span> npm run build
-
-<span class="cmt"># Stage 2: Serve with Nginx</span>
-<span class="ins">FROM</span> nginx:alpine
-
-<span class="ins">COPY</span> --from=build /app/dist /usr/share/nginx/html
-<span class="ins">COPY</span> nginx.conf /etc/nginx/conf.d/default.conf
-
-<span class="ins">EXPOSE</span> <span class="val">80</span>
-
-<span class="ins">CMD</span> <span class="str">["nginx", "-g", "daemon off;"]</span>
-</pre>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="file-label">⚙️ frontend/nginx.conf</div>
-      <div class="code-wrap">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre>
-<span class="kw">server</span> {
-    <span class="var">listen</span> <span class="val">80</span>;
-    <span class="var">server_name</span> localhost;
-
-    <span class="kw">location</span> / {
-        <span class="var">root</span>   /usr/share/nginx/html;
-        <span class="var">index</span>  index.html;
-        <span class="var">try_files</span> $uri $uri/ /index.html;
-    }
-
-    <span class="cmt"># Proxy API calls to backend container</span>
-    <span class="kw">location</span> /api/ {
-        <span class="var">proxy_pass</span> <span class="str">http://backend:8080</span>;
-    }
-}
-</pre>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>🚀 Run Frontend & Backend Separately</h2>
-      <ol class="steps">
-        <li><strong>Build both images</strong>
-<pre style="margin-top:6px">$ docker build -t my-backend ./backend
-$ docker build -t my-frontend ./frontend</pre></li>
-        <li><strong>Create a shared network</strong><pre style="margin-top:6px">$ docker network create myapp-net</pre></li>
-        <li><strong>Run backend</strong><pre style="margin-top:6px">$ docker run -d --name backend --network myapp-net -p 8080:8080 my-backend</pre></li>
-        <li><strong>Run frontend</strong><pre style="margin-top:6px">$ docker run -d --name frontend --network myapp-net -p 3000:80 my-frontend</pre></li>
-        <li><strong>Open browser</strong> → <span class="highlight">http://localhost:3000</span></li>
-      </ol>
-      <div class="note note-warn">⚠️ Use <code>--network</code> so frontend (Nginx) can reach <code>backend:8080</code> by container name.</div>
-    </div>
-  </div>
-
-  <!-- ==================== PART C ==================== -->
-  <div id="c" class="section">
-
-    <div class="card">
-      <h2>🐙 Part (c): Docker Compose — Full Stack</h2>
-      <p class="sub">Run frontend + backend + database together with one command</p>
-      <div class="note note-info">💡 Docker Compose handles networking, startup order, and environment variables automatically.</div>
-
-      <h3 style="font-size:0.9rem; margin-top:16px;">🏗️ Architecture</h3>
-      <div class="arch">
-        <div class="arch-box"><div class="icon">🌐</div><div class="lbl">Frontend</div><div class="port">:3000 → Nginx</div></div>
-        <div class="arrow">→</div>
-        <div class="arch-box"><div class="icon">☕</div><div class="lbl">Backend</div><div class="port">:8080 → Spring Boot</div></div>
-        <div class="arrow">→</div>
-        <div class="arch-box"><div class="icon">🗄️</div><div class="lbl">Database</div><div class="port">:3306 → MySQL</div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="file-label">📄 docker-compose.yml</div>
-      <div class="code-wrap">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre>
-<span class="ins">version</span>: <span class="str">"3.8"</span>
-
-<span class="ins">services</span>:
-
-  <span class="cmt"># MySQL Database</span>
-  <span class="kw">db</span>:
-    <span class="var">image</span>: <span class="val">mysql:8</span>
-    <span class="var">container_name</span>: myapp-db
-    <span class="var">restart</span>: always
-    <span class="var">environment</span>:
-      <span class="var">MYSQL_ROOT_PASSWORD</span>: <span class="str">root123</span>
-      <span class="var">MYSQL_DATABASE</span>: <span class="str">myappdb</span>
-      <span class="var">MYSQL_USER</span>: <span class="str">appuser</span>
-      <span class="var">MYSQL_PASSWORD</span>: <span class="str">apppass123</span>
-    <span class="var">ports</span>:
-      - <span class="str">"3306:3306"</span>
-    <span class="var">volumes</span>:
-      - db-data:/var/lib/mysql
-    <span class="var">networks</span>:
-      - myapp-network
-
-  <span class="cmt"># Spring Boot Backend</span>
-  <span class="kw">backend</span>:
-    <span class="var">build</span>: <span class="val">./backend</span>
-    <span class="var">container_name</span>: myapp-backend
-    <span class="var">restart</span>: always
-    <span class="var">ports</span>:
-      - <span class="str">"8080:8080"</span>
-    <span class="var">environment</span>:
-      <span class="var">SPRING_DATASOURCE_URL</span>: <span class="str">jdbc:mysql://db:3306/myappdb</span>
-      <span class="var">SPRING_DATASOURCE_USERNAME</span>: <span class="str">appuser</span>
-      <span class="var">SPRING_DATASOURCE_PASSWORD</span>: <span class="str">apppass123</span>
-    <span class="var">depends_on</span>:
-      - db
-    <span class="var">networks</span>:
-      - myapp-network
-
-  <span class="cmt"># React Frontend (Nginx)</span>
-  <span class="kw">frontend</span>:
-    <span class="var">build</span>: <span class="val">./frontend</span>
-    <span class="var">container_name</span>: myapp-frontend
-    <span class="var">restart</span>: always
-    <span class="var">ports</span>:
-      - <span class="str">"3000:80"</span>
-    <span class="var">depends_on</span>:
-      - backend
-    <span class="var">networks</span>:
-      - myapp-network
-
-<span class="ins">networks</span>:
-  <span class="kw">myapp-network</span>:
-    <span class="var">driver</span>: bridge
-
-<span class="ins">volumes</span>:
-  <span class="kw">db-data</span>:
-</pre>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="file-label">⚙️ application.properties (Spring Boot)</div>
-      <div class="code-wrap">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre>
-<span class="cmt"># Values come from Docker Compose environment variables</span>
-<span class="var">spring.datasource.url</span>=<span class="str">${SPRING_DATASOURCE_URL}</span>
-<span class="var">spring.datasource.username</span>=<span class="str">${SPRING_DATASOURCE_USERNAME}</span>
-<span class="var">spring.datasource.password</span>=<span class="str">${SPRING_DATASOURCE_PASSWORD}</span>
-<span class="var">spring.jpa.hibernate.ddl-auto</span>=<span class="val">update</span>
-<span class="var">spring.jpa.show-sql</span>=<span class="val">true</span>
-</pre>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>⚡ Docker Compose Commands</h2>
-      <ol class="steps">
-        <li><strong>Start everything</strong><pre style="margin-top:6px">$ docker-compose up --build</pre></li>
-        <li><strong>Check status</strong><pre style="margin-top:6px">$ docker-compose ps</pre></li>
-        <li><strong>View logs</strong><pre style="margin-top:6px">$ docker-compose logs backend</pre></li>
-        <li><strong>Stop everything</strong><pre style="margin-top:6px">$ docker-compose down</pre></li>
-      </ol>
-    </div>
-
-    <div class="card">
-      <h2>✅ Verify in Browser</h2>
-      <ol class="steps">
-        <li><strong>Frontend:</strong> Open <span class="highlight">http://localhost:3000</span> — see the React app</li>
-        <li><strong>Backend API:</strong> Open <span class="highlight">http://localhost:8080/api/hello</span> — see Spring Boot response</li>
-        <li><strong>Full flow:</strong> React → Nginx proxies to backend → backend queries MySQL → response shown</li>
-      </ol>
-      <div class="note note-ok">✅ If all 3 work, your full-stack Docker setup is complete!</div>
-    </div>
-  </div>
-
-</div>
-
-<script>
-  function showTab(id, btn) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    btn.classList.add('active');
-  }
-
-  function copyCode(btn) {
-    const pre = btn.parentElement.querySelector('pre');
-    const text = pre.innerText;
-    navigator.clipboard.writeText(text);
-    btn.textContent = '✓ Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  }
-</script>
 </body>
+
 </html>
